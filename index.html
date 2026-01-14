@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sudoku Editor</title>
+    <title>Ultimate Sudoku Editor (Unlimited Undo)</title>
     <style>
         /* --- 1. 기본 변수 설정 --- */
         :root {
@@ -16,7 +16,7 @@
             --color-text: #333;         
             --color-error: #e53935;     
             
-            /* 반응형 셀 크기: 화면 폭에 따라 유동적 조절 */
+            /* 반응형 셀 크기 */
             --cell-size: clamp(30px, 10vw, 55px);
             
             --font-size-val: calc(var(--cell-size) * 0.55);
@@ -43,7 +43,7 @@
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             user-select: none;
             width: fit-content;
-            max-width: 98vw; /* 모바일 여백 확보 */
+            max-width: 98vw;
         }
 
         header { margin-bottom: 15px; }
@@ -68,14 +68,13 @@
         .btn-red { background-color: #d32f2f; }
 
 
-        /* --- 3. 보드 스타일 (핵심 수정) --- */
+        /* --- 3. 보드 스타일 --- */
         .board {
-            /* inline-grid를 사용하여 내용물 크기에 딱 맞게 컨테이너를 조임 */
             display: inline-grid;
             grid-template-columns: repeat(9, var(--cell-size));
             grid-template-rows: repeat(9, var(--cell-size));
             
-            /* [수정] 보드는 위/왼쪽 테두리만 담당 */
+            /* 테두리 분리 전략 */
             border-top: var(--border-thick) solid var(--color-border);
             border-left: var(--border-thick) solid var(--color-border);
             border-right: none;
@@ -99,30 +98,24 @@
             color: var(--color-text);
             z-index: 1;
 
-            /* [수정] 모든 셀은 기본적으로 오른쪽/아래쪽 테두리를 가짐 */
             border-right: var(--border-thin) solid var(--color-thin);
             border-bottom: var(--border-thin) solid var(--color-thin);
         }
 
-        /* --- 4. 테두리 로직 (3x3 구획 및 외곽선) --- */
-        
-        /* 세로 굵은 선 (3, 6열) */
+        /* --- 4. 테두리 로직 --- */
         .cell:nth-child(3n) { 
             border-right: var(--border-thick) solid var(--color-border); 
         }
 
-        /* 가로 굵은 선 (3, 6행) */
         .cell:nth-child(n+19):nth-child(-n+27),
         .cell:nth-child(n+46):nth-child(-n+54) { 
             border-bottom: var(--border-thick) solid var(--color-border); 
         }
 
-        /* [핵심] 오른쪽 끝(9열) 셀들이 오른쪽 외곽선을 그림 */
         .cell:nth-child(9n) {
             border-right: var(--border-thick) solid var(--color-border);
         }
 
-        /* [핵심] 아래쪽 끝(9행) 셀들이 아래쪽 외곽선을 그림 */
         .cell:nth-child(n+73) {
             border-bottom: var(--border-thick) solid var(--color-border);
         }
@@ -155,7 +148,6 @@
         /* --- 6. 하단 컨트롤 패널 --- */
         .input-controls { 
             width: 100%; 
-            /* 버튼들이 보드보다 너무 넓어지지 않게 제한 */
             max-width: calc(var(--cell-size) * 9 + 10px); 
             margin: 0 auto; 
         }
@@ -265,7 +257,10 @@
             const currentState = JSON.parse(JSON.stringify(gridState));
             historyStack.push(currentState);
             redoStack = [];
-            if (historyStack.length > 50) historyStack.shift();
+            
+            // [수정] 무제한 히스토리 (오래된 기록 삭제 로직 제거)
+            // if (historyStack.length > 50) historyStack.shift(); 
+            
             updateUndoRedoUI();
         }
 
