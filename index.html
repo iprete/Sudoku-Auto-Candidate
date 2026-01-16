@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sudoku Editor</title>
+    <title>Sudoku Editor (Branch Marking)</title>
     <style>
         /* --- 1. 변수 및 기본 설정 --- */
         :root {
@@ -121,6 +121,12 @@
             font-size: 13px; color: #2d3748; background: white; padding: 6px; 
             border-radius: 6px; border: 1px solid #cbd5e0; text-align: center;
         }
+        
+        /* 현재 브랜치가 빨간색일 때 정보창 스타일 변경 */
+        .branch-info.red-warning {
+            background-color: #fff5f5; color: #c53030; border-color: #fc8181;
+        }
+
         .btn-branch {
             padding: 6px 10px; font-size: 12px; border-radius: 6px; border: none; cursor: pointer; color: white;
         }
@@ -261,7 +267,7 @@
 
         @media (hover: hover) { .cell:hover { background-color: rgba(0,0,0,0.03); } }
 
-        /* --- 7. TREE VISUALIZATION MODAL STYLE --- */
+        /* --- 7. TREE VISUALIZATION --- */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.5); z-index: 1000;
@@ -287,7 +293,6 @@
             background: #fdfdfd;
         }
 
-        /* Pure CSS Tree Structure */
         .tree ul {
             padding-top: 20px; position: relative;
             transition: all 0.5s;
@@ -301,13 +306,11 @@
             transition: all 0.5s;
         }
 
-        /* Connecting lines */
         .tree li::before, .tree li::after {
             content: ''; position: absolute; top: 0; right: 50%;
             border-top: 2px solid #ccc; width: 50%; height: 20px;
         }
         .tree li::after { right: auto; left: 50%; border-left: 2px solid #ccc; }
-        
         .tree li:only-child::after, .tree li:only-child::before { display: none; }
         .tree li:only-child { padding-top: 0; }
         .tree li:first-child::before, .tree li:last-child::after { border: 0 none; }
@@ -318,25 +321,71 @@
             border-left: 2px solid #ccc; width: 0; height: 20px;
         }
 
-        /* Tree Nodes */
-        .tree-node-btn {
-            border: 2px solid #cbd5e0; padding: 10px 15px; text-decoration: none;
-            color: #4a5568; font-family: arial, verdana, tahoma; font-size: 14px; font-weight: bold;
-            display: inline-block; border-radius: 6px; background: white;
-            transition: all 0.2s; cursor: pointer;
-            min-width: 100px;
+        /* --- Tree Node Styles --- */
+        .tree-node-wrapper {
+            border: 2px solid #cbd5e0; 
+            border-radius: 6px; 
+            background: white;
+            display: inline-flex;
+            flex-direction: column;
+            min-width: 110px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        .tree-node-btn:hover { background: #edf2f7; border-color: #a0aec0; transform: translateY(-2px); }
-        
-        /* Current Branch Highlight */
-        .tree-node-btn.current {
-            background: #3182ce; color: white; border-color: #2b6cb0;
-            box-shadow: 0 4px 6px rgba(49, 130, 206, 0.3);
+            transition: all 0.2s;
+            overflow: hidden;
         }
         
-        /* Deletable Indicator */
-        .tree-node-btn .branch-time { display: block; font-size: 10px; font-weight: normal; margin-top: 4px; opacity: 0.8; }
+        .tree-node-content {
+            padding: 8px 12px;
+            cursor: pointer;
+            text-align: center;
+        }
+        
+        .tree-node-name {
+            font-weight: bold; color: #4a5568; font-size: 14px;
+        }
+        .tree-node-tag {
+            font-size: 10px; color: #718096; margin-top: 2px;
+        }
+
+        /* --- Red Branch Styles --- */
+        .tree-node-wrapper.red-branch {
+            border-color: #fc8181;
+            background-color: #fff5f5;
+        }
+        .tree-node-wrapper.red-branch .tree-node-name { color: #c53030; }
+        .tree-node-wrapper.red-branch .tree-node-tag { color: #e53e3e; }
+
+        /* --- Toggle Button --- */
+        .tree-node-footer {
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+        }
+        .btn-toggle-red {
+            flex: 1; border: none; background: #f7fafc; 
+            padding: 4px; font-size: 11px; cursor: pointer; color: #718096;
+            transition: background 0.2s;
+        }
+        .btn-toggle-red:hover { background: #edf2f7; color: #2d3748; }
+        
+        .tree-node-wrapper.red-branch .btn-toggle-red {
+            background: #fed7d7; color: #c53030;
+        }
+        .tree-node-wrapper.red-branch .btn-toggle-red:hover {
+            background: #feb2b2;
+        }
+
+        /* Current Highlight */
+        .tree-node-wrapper.current {
+            border-color: #3182ce;
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.3);
+        }
+        .tree-node-wrapper.current .tree-node-name { color: #2b6cb0; }
+
+        /* Hover Effect */
+        .tree-node-wrapper:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
 
     </style>
 </head>
@@ -392,8 +441,7 @@
                 <button id="close-modal" class="close-modal">&times;</button>
             </div>
             <div class="tree-container">
-                <div class="tree" id="tree-root">
-                    </div>
+                <div class="tree" id="tree-root"></div>
             </div>
         </div>
     </div>
@@ -406,7 +454,6 @@
             '#bdb2ff', '#ffc6ff', '#dcdcdc'
         ];
 
-        // --- Global Variables ---
         let gridState = []; 
         let clueState = { top: [], bottom: [], left: [], right: [] };
         
@@ -416,11 +463,9 @@
         let inputMode = 'normal'; 
         let isAutoCandidateOn = false;
 
-        // --- Branch Management Variables ---
         let branches = {};
         let currentBranchId = 'main';
 
-        // --- DOM Elements ---
         const boardElement = document.getElementById('sudoku-board');
         const numpadElement = document.getElementById('numpad');
         const modeButtons = document.querySelectorAll('.mode-btn');
@@ -429,7 +474,6 @@
         const btnRedo = document.getElementById('btn-redo');
         const currentBranchInfo = document.getElementById('current-branch-info');
         
-        // Modal Elements
         const treeModal = document.getElementById('tree-modal');
         const treeRoot = document.getElementById('tree-root');
         const closeModalBtn = document.getElementById('close-modal');
@@ -442,7 +486,8 @@
                 'main': {
                     id: 'main',
                     name: 'Main Branch',
-                    parentId: null, // Root
+                    parentId: null,
+                    isRed: false, // 빨간색 마킹 상태
                     grid: JSON.parse(JSON.stringify(initialGrid)),
                     clues: JSON.parse(JSON.stringify(initialClues)),
                     history: [],
@@ -491,7 +536,8 @@
             branches[newId] = {
                 id: newId,
                 name: branchName,
-                parentId: currentBranchId, // 부모 ID 저장
+                parentId: currentBranchId,
+                isRed: branches[currentBranchId].isRed, // 부모가 빨간색이면 자식도 빨간색 상속
                 grid: JSON.parse(JSON.stringify(gridState)),
                 clues: JSON.parse(JSON.stringify(clueState)),
                 history: JSON.parse(JSON.stringify(historyStack)),
@@ -501,8 +547,6 @@
             currentBranchId = newId;
             updateBranchUI();
             renderAll();
-            
-            // 분기 생성 후 바로 트리 뷰 보여주기 (선택사항)
             openTreeModal();
         }
 
@@ -513,22 +557,47 @@
             updateBranchUI();
             renderAll();
             updateUndoRedoUI();
-            closeTreeModal(); // 이동 후 모달 닫기
+            closeTreeModal();
         }
 
         function updateBranchUI() {
             currentBranchInfo.textContent = `Current: ${branches[currentBranchId].name}`;
+            // 빨간 분기라면 경고 표시
+            if (branches[currentBranchId].isRed) {
+                currentBranchInfo.classList.add('red-warning');
+            } else {
+                currentBranchInfo.classList.remove('red-warning');
+            }
         }
 
-        // --- Tree Visualization Logic ---
+        // --- Recursive Red Flag Toggle ---
+        function toggleBranchRed(branchId) {
+            const newState = !branches[branchId].isRed;
+            applyRedRecursive(branchId, newState);
+            
+            // UI 갱신 (트리 다시 그리기 + 현재 분기 상태 업데이트)
+            openTreeModal();
+            updateBranchUI();
+        }
+
+        // 재귀함수: 본인 및 모든 자손들에게 상태 전파
+        function applyRedRecursive(parentId, state) {
+            branches[parentId].isRed = state;
+            
+            // 모든 브랜치를 순회하며 해당 parentId를 가진 자식을 찾음
+            Object.values(branches).forEach(branch => {
+                if (branch.parentId === parentId) {
+                    applyRedRecursive(branch.id, state);
+                }
+            });
+        }
+
+        // --- Tree Visualization ---
         function buildTreeData() {
-            // Flat object -> Nested Tree Structure
             const tree = {};
-            // Initialize children array for all
             Object.keys(branches).forEach(id => {
                 tree[id] = { ...branches[id], children: [] };
             });
-            
             const rootNodes = [];
             Object.keys(tree).forEach(id => {
                 const node = tree[id];
@@ -545,14 +614,36 @@
             const isCurrent = node.id === currentBranchId;
             const li = document.createElement('li');
             
-            const btn = document.createElement('div');
-            btn.className = `tree-node-btn ${isCurrent ? 'current' : ''}`;
-            btn.innerHTML = `
-                ${node.name}
-                <span class="branch-time">${node.id === 'main' ? 'ROOT' : 'Sub'}</span>
+            // Node Wrapper
+            const wrapper = document.createElement('div');
+            wrapper.className = `tree-node-wrapper ${isCurrent ? 'current' : ''} ${node.isRed ? 'red-branch' : ''}`;
+            
+            // Content (Name click switches branch)
+            const content = document.createElement('div');
+            content.className = 'tree-node-content';
+            content.innerHTML = `
+                <div class="tree-node-name">${node.name}</div>
+                <div class="tree-node-tag">${node.id === 'main' ? 'ROOT' : 'Sub'}</div>
             `;
-            btn.onclick = () => switchBranch(node.id);
-            li.appendChild(btn);
+            content.onclick = () => switchBranch(node.id);
+            
+            // Footer (Toggle Button)
+            const footer = document.createElement('div');
+            footer.className = 'tree-node-footer';
+            
+            const toggleBtn = document.createElement('button');
+            toggleBtn.className = 'btn-toggle-red';
+            toggleBtn.textContent = node.isRed ? '🚫 Invalid' : 'Mark Invalid';
+            toggleBtn.onclick = (e) => {
+                e.stopPropagation(); // 클릭 이벤트 전파 방지
+                toggleBranchRed(node.id);
+            };
+            
+            footer.appendChild(toggleBtn);
+            wrapper.appendChild(content);
+            wrapper.appendChild(footer);
+            
+            li.appendChild(wrapper);
 
             if (node.children.length > 0) {
                 const ul = document.createElement('ul');
@@ -565,33 +656,27 @@
         }
 
         function openTreeModal() {
-            saveCurrentBranchData(); // 최신 상태 저장
+            saveCurrentBranchData();
             const roots = buildTreeData();
             treeRoot.innerHTML = '';
-            
             const ul = document.createElement('ul');
             roots.forEach(root => {
                 ul.appendChild(renderTreeNode(root));
             });
             treeRoot.appendChild(ul);
-            
             treeModal.classList.add('open');
         }
 
-        function closeTreeModal() {
-            treeModal.classList.remove('open');
-        }
+        function closeTreeModal() { treeModal.classList.remove('open'); }
 
-        // --- History Logic ---
+        // --- Standard Logic (History, Rendering, etc) ---
+        // (Existing logic remains same, just ensuring variables connect)
         function saveState() {
             const state = { grid: JSON.parse(JSON.stringify(gridState)), clues: JSON.parse(JSON.stringify(clueState)) };
-            historyStack.push(state);
-            redoStack = [];
-            updateUndoRedoUI();
+            historyStack.push(state); redoStack = []; updateUndoRedoUI();
         }
         function restoreState(state) {
-            gridState = state.grid; clueState = state.clues;
-            renderAll(); updateUndoRedoUI();
+            gridState = state.grid; clueState = state.clues; renderAll(); updateUndoRedoUI();
         }
         function undo() {
             if (historyStack.length === 0) return;
@@ -604,15 +689,13 @@
             restoreState(redoStack.pop());
         }
         function updateUndoRedoUI() {
-            btnUndo.disabled = historyStack.length === 0;
-            btnRedo.disabled = redoStack.length === 0;
+            btnUndo.disabled = historyStack.length === 0; btnRedo.disabled = redoStack.length === 0;
         }
-
-        // --- Rendering Core ---
+        
         function renderAll() {
-            renderBoard();
-            renderClues('top'); renderClues('bottom'); renderClues('left'); renderClues('right');
+            renderBoard(); renderClues('top'); renderClues('bottom'); renderClues('left'); renderClues('right');
         }
+        
         function getConflictIndices() {
             const conflicts = new Set();
             for (let i = 0; i < 81; i++) {
@@ -626,6 +709,7 @@
             }
             return conflicts;
         }
+
         function renderBoard() {
             boardElement.innerHTML = '';
             const conflictIndices = getConflictIndices();
@@ -657,6 +741,7 @@
                 boardElement.appendChild(cellDiv);
             });
         }
+
         function renderClues(side) {
             const container = document.getElementById(`clues-${side}`); container.innerHTML = '';
             clueState[side].forEach((val, index) => {
@@ -666,6 +751,7 @@
                 container.appendChild(div);
             });
         }
+
         function updateNumpad() {
             numpadElement.innerHTML = '';
             for (let i = 1; i <= 9; i++) createNumBtn(i);
@@ -673,6 +759,7 @@
             const delBtn = document.createElement('button'); delBtn.className = 'action-btn btn-delete'; delBtn.textContent = 'X'; delBtn.onclick = handleDelete;
             numpadElement.appendChild(delBtn);
         }
+
         function createNumBtn(num, extraClass = '') {
             const btn = document.createElement('button'); btn.className = `action-btn ${extraClass}`;
             if (inputMode === 'color' && num !== 0) {
@@ -683,7 +770,6 @@
             numpadElement.appendChild(btn);
         }
 
-        // --- Interaction ---
         function handleInput(inputVal) {
             if (!selection) return;
             saveState();
@@ -700,6 +786,7 @@
             if (isAutoCandidateOn && valueChanged) refreshAllCandidates();
             renderBoard();
         }
+
         function handleDelete() {
             if (!selection) return;
             saveState();
@@ -714,6 +801,7 @@
             if (isAutoCandidateOn && valueDeleted) refreshAllCandidates();
             renderBoard();
         }
+
         function toggleAutoCandidate() { if (!isAutoCandidateOn) saveState(); isAutoCandidateOn = !isAutoCandidateOn; updateAutoCandidateBtn(); if (isAutoCandidateOn) refreshAllCandidates(); renderBoard(); }
         function updateAutoCandidateBtn() { if (isAutoCandidateOn) { btnAuto.textContent = "Auto Candidate: ON"; btnAuto.classList.add('active-toggle'); } else { btnAuto.textContent = "Auto Candidate: OFF"; btnAuto.classList.remove('active-toggle'); } }
         function refreshAllCandidates() {
@@ -731,7 +819,6 @@
         function resetBoardOnly() { if (confirm("보드 안쪽 내용을 지우시겠습니까?")) { saveState(); gridState = Array(81).fill(null).map(() => ({ value: null, corner: [], center: [], colorIndex: 0 })); if (selection && selection.type === 'board') selection = null; renderBoard(); } }
         function newGame() { if (confirm("새 게임을 시작하시겠습니까?")) { saveState(); initGame(); } }
 
-        // --- Listeners ---
         modeButtons.forEach(btn => btn.addEventListener('click', (e) => { modeButtons.forEach(b => b.classList.remove('active')); e.target.classList.add('active'); inputMode = e.target.dataset.mode; updateNumpad(); }));
         document.getElementById('btn-branch-add').addEventListener('click', createBranch);
         document.getElementById('btn-tree').addEventListener('click', openTreeModal);
